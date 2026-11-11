@@ -94,6 +94,31 @@ class CliAppTest < CliTestCase
     run_command("boot", config: :with_parallel_roles, host: nil)
   end
 
+  test "boot without parallel roles with user hosts boots roles on hosts" do
+    # user@host server strings must match roles when hosts run in parallel but roles run sequentially
+    SSHKit::Backend::Abstract.any_instance.stubs(:capture_with_info).returns("")
+    SSHKit::Backend::Abstract.any_instance.stubs(:execute)
+
+    # Record which (host, role) pairs App::Boot is constructed with
+    booted = []
+    boot_recorder = Module.new do
+      define_method(:initialize) do |*args|
+        super(*args)
+        booted << [ host.to_s, role.name ]
+      end
+    end
+    Kamal::Cli::App::Boot.prepend(boot_recorder)
+    Kamal::Cli::App::Boot.any_instance.stubs(:run)
+
+    run_command("boot", config: :with_user_hosts, host: nil)
+
+    # Hosts are SSHKit::Host objects, whose to_s is the bare hostname
+    assert_equal %w[ 1.1.1.1 1.1.1.2 1.1.1.3 ], booted.map(&:first).uniq.sort
+    assert_equal %w[ web workers ], booted.map(&:last).uniq.sort
+    # Both roles boot on the shared user host
+    assert_equal 2, booted.count { |host, _role| host == "1.1.1.1" }
+  end
+
   test "boot errors don't leave lock in place" do
     Kamal::Cli::App.any_instance.expects(:using_version).raises(RuntimeError)
 

@@ -88,6 +88,12 @@ module Kamal::Utils
     elements.sort_by!.with_index { |element, index| [ block.call(element), index ] }
   end
 
+  # The string form a host is configured with in servers, e.g. "app@1.1.1.1". SSHKit::Host#to_s is
+  # just the hostname, so this normalizes host keys for comparisons against role host lists.
+  def role_host(host)
+    host.is_a?(SSHKit::Host) && host.user ? "#{host.user}@#{host.hostname}" : host.to_s
+  end
+
   def join_commands(commands)
     commands.map(&:strip).join(" ")
   end

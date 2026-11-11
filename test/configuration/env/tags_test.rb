@@ -129,4 +129,25 @@ class ConfigurationEnvTagsTest < ActiveSupport::TestCase
     config = Kamal::Configuration.new(deploy)
     assert_equal "bar", config.role("web").env("1.1.1.1").clear["FOO"]
   end
+
+  test "env with sshkit host for user-qualified server" do
+    deploy = {
+      service: "app", image: "dhh/app", registry: { "username" => "dhh", "password" => "secret" },
+      servers: { "web" => [ { "appuser@1.1.1.1" => "odd" }, "appuser@1.1.1.2" ] },
+      builder: { "arch" => "amd64" },
+      env: {
+        "tags" => {
+          "odd" => { "clear" => { "TYPE" => "odd" } }
+        }
+      }
+    }
+
+    config = Kamal::Configuration.new(deploy)
+    role = config.role(:web)
+
+    # SSHKit::Host's #to_s is just the hostname, so role env lookups must account for the user
+    assert_equal "odd", role.env(SSHKit::Host.new("appuser@1.1.1.1")).clear["TYPE"]
+    assert_equal "odd", role.env("appuser@1.1.1.1").clear["TYPE"]
+    assert_nil role.env(SSHKit::Host.new("appuser@1.1.1.2")).clear["TYPE"]
+  end
 end

@@ -1,6 +1,6 @@
 class Kamal::Commander::Specifics
   attr_reader :primary_host, :primary_role, :hosts, :roles
-  delegate :stable_sort!, to: Kamal::Utils
+  delegate :stable_sort!, :role_host, to: Kamal::Utils
 
   def initialize(config, specific_hosts, specific_roles)
     @config, @specific_hosts, @specific_roles = config, specific_hosts, specific_roles
@@ -15,7 +15,7 @@ class Kamal::Commander::Specifics
   end
 
   def roles_on(host)
-    roles.select { |role| role.hosts.include?(host.to_s) }
+    roles.select { |role| role.hosts.include?(role_host(host)) }
   end
 
   def app_hosts

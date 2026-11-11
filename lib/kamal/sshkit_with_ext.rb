@@ -263,7 +263,7 @@ module SSHKitDslRoles
       # Host-first iteration: hosts run in parallel, roles on each host run sequentially
       on(hosts) do |host|
         roles.each do |role|
-          instance_exec(host, role, &block) if role.hosts.include?(host.to_s)
+          instance_exec(host, role, &block) if role.hosts.include?(Kamal::Utils.role_host(host))
         end
       end
     end

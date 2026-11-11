@@ -1,7 +1,7 @@
 class Kamal::Configuration::Role
   include Kamal::Configuration::Validation
 
-  delegate :argumentize, :optionize, to: Kamal::Utils
+  delegate :argumentize, :optionize, :role_host, to: Kamal::Utils
 
   attr_reader :name, :config, :specialized_env, :specialized_logging, :specialized_proxy
 
@@ -36,7 +36,7 @@ class Kamal::Configuration::Role
   end
 
   def env_tags(host)
-    tagged_hosts.fetch(host).collect { |tag| config.env_tag(tag) }.compact
+    tagged_hosts.fetch(role_host(host)).collect { |tag| config.env_tag(tag) }.compact
   end
 
   def cmd

@@ -31,6 +31,14 @@ class SecretsTest < ActiveSupport::TestCase
     end
   end
 
+  test "empty secret is present for both key? and []" do
+    with_test_secrets("secrets" => "EMPTY=") do
+      secrets = Kamal::Secrets.new(secrets_path: ".kamal/secrets")
+      assert secrets.key?("EMPTY")
+      assert_equal "", secrets["EMPTY"]
+    end
+  end
+
   test "command interpolation" do
     with_test_secrets("secrets" => "SECRET=$(echo ABC)") do
       assert_equal "ABC", Kamal::Secrets.new(secrets_path: ".kamal/secrets")["SECRET"]

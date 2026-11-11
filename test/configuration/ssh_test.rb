@@ -77,4 +77,11 @@ class ConfigurationSshTest < ActiveSupport::TestCase
       assert_equal [ "secret_ssh_key", "second_secret_ssh_key" ], config.ssh.options[:key_data]
     end
   end
+
+  test "ssh key_data with an empty secret" do
+    with_test_secrets("secrets" => "EMPTY_KEY=") do
+      config = Kamal::Configuration.new(@deploy.tap { |c| c.merge!(ssh: { "key_data" => [ "EMPTY_KEY" ] }) })
+      assert_equal [ "" ], config.ssh.options[:key_data]
+    end
+  end
 end

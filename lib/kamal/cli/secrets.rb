@@ -19,11 +19,13 @@ class Kamal::Cli::Secrets < Kamal::Cli::Base
 
   desc "extract", "Extract a single secret from the results of a fetch call"
   option :inline, type: :boolean, required: false, hidden: true
+  option :require_value, type: :boolean, required: false, desc: "Fail if the extracted secret is empty"
   def extract(name, secrets)
     parsed_secrets = JSON.parse(secrets)
     value = parsed_secrets[name] || parsed_secrets.find { |k, v| k.end_with?("/#{name}") }&.last
 
     raise "Could not find secret #{name}" if value.nil?
+    raise "Secret #{name} is empty" if options[:require_value] && value.blank?
 
     return_or_puts value, inline: options[:inline]
   end

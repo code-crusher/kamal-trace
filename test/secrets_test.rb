@@ -7,6 +7,36 @@ class SecretsTest < ActiveSupport::TestCase
     end
   end
 
+  test "empty secret allowed by default" do
+    with_test_secrets("secrets" => "SECRET=") do
+      assert_equal "", Kamal::Secrets.new(secrets_path: ".kamal/secrets")["SECRET"]
+    end
+  end
+
+  test "required secret" do
+    with_test_secrets("secrets" => "SECRET=ABC") do
+      assert_equal "ABC", Kamal::Secrets.new(secrets_path: ".kamal/secrets")["SECRET", required: true]
+    end
+  end
+
+  test "required empty secret" do
+    with_test_secrets("secrets" => "SECRET=") do
+      error = assert_raises(Kamal::ConfigurationError) do
+        Kamal::Secrets.new(secrets_path: ".kamal/secrets")["SECRET", required: true]
+      end
+      assert_equal "Secret 'SECRET' is required but is empty", error.message
+    end
+  end
+
+  test "required missing secret" do
+    with_test_secrets("secrets" => "OTHER=ABC") do
+      error = assert_raises(Kamal::ConfigurationError) do
+        Kamal::Secrets.new(secrets_path: ".kamal/secrets")["SECRET", required: true]
+      end
+      assert_equal "Secret 'SECRET' not found in .kamal/secrets", error.message
+    end
+  end
+
   test "synchronized_fetch" do
     with_test_secrets("secrets" => "SECRET=ABC") do
       assert_equal "ABC", Kamal::Secrets.new(secrets_path: ".kamal/secrets").send(:synchronized_fetch, "SECRET")

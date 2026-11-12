@@ -30,13 +30,32 @@ class Kamal::Configuration::Env
     clear.merge(aliased_secrets)
   end
 
+  def ensure_required_secrets_present!
+    required_secret_keys.each do |key|
+      secrets[key, required: true]
+    rescue Kamal::ConfigurationError => e
+      raise Kamal::ConfigurationError, "#{context}: #{e.message}"
+    end
+  end
+
   private
     def aliased_secrets
-      secret_keys.to_h { |key| extract_alias(key) }.transform_values { |secret_key| secrets[secret_key] }
+      secret_keys.each_with_object({}) do |key, aliased_secrets|
+        key_name, secret_key, required = extract_alias(key)
+        aliased_secrets[key_name] = secrets[secret_key, required: required]
+      end
+    end
+
+    def required_secret_keys
+      secret_keys.filter_map do |key|
+        _key_name, secret_key, required = extract_alias(key)
+        secret_key if required
+      end
     end
 
     def extract_alias(key)
+      key, required = key.end_with?("!") ? [ key.delete_suffix("!"), true ] : [ key, false ]
       key_name, key_aliased_to = key.split(":", 2)
-      [ key_name, key_aliased_to || key_name ]
+      [ key_name, key_aliased_to || key_name, required ]
     end
 end

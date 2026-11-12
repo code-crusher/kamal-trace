@@ -9,8 +9,14 @@ class Kamal::Secrets
     @mutex = Mutex.new
   end
 
-  def [](key)
-    synchronized_fetch(key)
+  def [](key, required: false)
+    value = synchronized_fetch(key)
+
+    if required && value.blank?
+      raise Kamal::ConfigurationError, "Secret '#{key}' is required but is empty"
+    end
+
+    value
   rescue KeyError
     if secrets_files.present?
       raise Kamal::ConfigurationError, "Secret '#{key}' not found in #{secrets_files.join(", ")}"

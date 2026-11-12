@@ -89,6 +89,40 @@ class ConfigurationTest < ActiveSupport::TestCase
     assert_equal %w[ web workers ], @config_with_roles.roles.collect(&:name)
   end
 
+  test "required secrets are checked when the configuration loads" do
+    with_test_secrets("secrets" => "DB_PASSWORD=") do
+      @deploy[:env] = { "secret" => [ "DB_PASSWORD!" ] }
+
+      error = assert_raises(Kamal::ConfigurationError) { Kamal::Configuration.new(@deploy) }
+      assert_equal "env: Secret 'DB_PASSWORD' is required but is empty", error.message
+    end
+  end
+
+  test "required secrets in roles and accessories are checked when the configuration loads" do
+    with_test_secrets("secrets" => "DB_PASSWORD=") do
+      @deploy[:servers] = { "web" => [ "1.1.1.1" ], "workers" => { "hosts" => [ "1.1.1.2" ], "env" => { "secret" => [ "DB_PASSWORD!" ] } } }
+
+      error = assert_raises(Kamal::ConfigurationError) { Kamal::Configuration.new(@deploy) }
+      assert_equal "servers/workers/env: Secret 'DB_PASSWORD' is required but is empty", error.message
+    end
+
+    with_test_secrets("secrets" => "DB_PASSWORD=") do
+      @deploy.delete(:servers)
+      @deploy[:accessories] = { "db" => { "image" => "mysql:8.0", "host" => "1.1.1.3", "env" => { "secret" => [ "DB_PASSWORD!" ] } } }
+
+      error = assert_raises(Kamal::ConfigurationError) { Kamal::Configuration.new(@deploy) }
+      assert_equal "accessories/db/env: Secret 'DB_PASSWORD' is required but is empty", error.message
+    end
+  end
+
+  test "empty secrets are allowed when the configuration loads" do
+    with_test_secrets("secrets" => "DB_PASSWORD=") do
+      @deploy[:env] = { "secret" => [ "DB_PASSWORD" ] }
+
+      assert_nothing_raised { Kamal::Configuration.new(@deploy) }
+    end
+  end
+
   test "role" do
     assert @config.role(:web).name.web?
     assert_equal "workers", @config_with_roles.role(:workers).name

@@ -21,6 +21,21 @@ class CliSecretsTest < CliTestCase
     assert_equal "oof", run_command("extract", "foo", "{\"abc/foo\":\"oof\", \"bar\":\"rab\", \"baz\":\"zab\"}")
   end
 
+  test "extract empty value" do
+    assert_equal "", run_command("extract", "foo", "{\"foo\":\"\"}")
+  end
+
+  test "extract empty value with require value" do
+    error = assert_raises(RuntimeError) do
+      run_command("extract", "foo", "{\"foo\":\"\"}", "--require-value")
+    end
+    assert_equal "Secret foo is empty", error.message
+  end
+
+  test "extract present value with require value" do
+    assert_equal "oof", run_command("extract", "foo", "{\"foo\":\"oof\"}", "--require-value")
+  end
+
   test "print" do
     with_test_secrets("secrets" => "SECRET1=ABC\nSECRET2=${SECRET1}DEF\n") do
       assert_equal "SECRET1=ABC\nSECRET2=ABCDEF", run_command("print")

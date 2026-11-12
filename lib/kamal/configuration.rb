@@ -88,6 +88,7 @@ class Kamal::Configuration
     ensure_local_registry_remote_builder_has_ssh_url
     ensure_no_conflicting_proxy_runs
     ensure_valid_hooks_output!
+    ensure_required_secrets_present
   end
 
   def version=(version)
@@ -282,7 +283,7 @@ class Kamal::Configuration
   end
 
   def env_tags
-    @env_tags ||= if (tags = raw_config.env["tags"])
+    @env_tags ||= if (tags = raw_config.env&.[]("tags"))
       tags.collect { |name, config| Env::Tag.new(name, config: config, secrets: secrets) }
     else
       []
@@ -326,6 +327,15 @@ class Kamal::Configuration
       if require_destination? && destination.nil?
         raise ArgumentError, "You must specify a destination"
       end
+
+      true
+    end
+
+    def ensure_required_secrets_present
+      @env.ensure_required_secrets_present!
+      roles.each { |role| role.specialized_env.ensure_required_secrets_present! }
+      accessories.each { |accessory| accessory.env.ensure_required_secrets_present! }
+      env_tags.each { |tag| tag.env.ensure_required_secrets_present! }
 
       true
     end
